@@ -1,0 +1,316 @@
+hive> show databases;
+OK
+airlines
+default
+different_data_formats
+flume_twitter
+nyse
+retail
+retail_store
+types_of_joins
+udf
+unstructured_data
+utility
+Time taken: 1.363 seconds, Fetched: 11 row(s)
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive> create database h1b_project;
+OK
+Time taken: 0.267 seconds
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive> set hive.cli.print.current.db=true;
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive (default)> use h1b_project;
+OK
+Time taken: 0.013 seconds
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive (h1b_project)> CREATE TABLE h1b_app1(s_no int, case_status string, employer_name string, soc_name string, job_title string, full_time_position string, prevailing_wage bigint, year string, worksite string, longitude double, latitude double)
+                  > ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.OpenCSVSerde' WITH SERDEPROPERTIES("separatorChar"=",", "quoteChar"="\"")
+                  > STORED AS TEXTFILE;
+OK
+Time taken: 0.12 seconds
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive (h1b_project)> show tables;
+OK
+h1b_app1
+Time taken: 0.045 seconds, Fetched: 1 row(s)
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive (h1b_project)> select * from h1b_app1 limit 2;
+OK
+Time taken: 1.031 seconds
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive (h1b_project)> load data local inpath '/home/hduser/hadoop_project/project/original_data/h1b.csv' OVERWRITE INTO TABLE h1b_app1;
+Loading data to table h1b_project.h1b_app1
+Table h1b_project.h1b_app1 stats: [numFiles=1, numRows=0, totalSize=492258242, rawDataSize=0]
+OK
+Time taken: 67.301 seconds
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive (h1b_project)> select * from h1b_app1 limit 1;
+OK
+1	CERTIFIED-WITHDRAWN	UNIVERSITY OF MICHIGAN	BIOCHEMISTS AND BIOPHYSICISTS	POSTDOCTORAL RESEARCH FELLOW	N	36067	2016	ANN ARBOR, MICHIGAN	-83.7430378	42.2808256
+Time taken: 0.671 seconds, Fetched: 1 row(s)
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive (h1b_project)> select COUNT(*) from h1b_app1;
+Query ID = hduser_20171231031818_7fc53b9f-911a-4bd5-8b93-1096f06e0230
+Total jobs = 1
+Launching Job 1 out of 1
+Number of reduce tasks determined at compile time: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1514717379401_0001, Tracking URL = http://ubuntu:8088/proxy/application_1514717379401_0001/
+Kill Command = /usr/local/hadoop/bin/hadoop job  -kill job_1514717379401_0001
+Hadoop job information for Stage-1: number of mappers: 2; number of reducers: 1
+2017-12-31 03:18:32,923 Stage-1 map = 0%,  reduce = 0%
+2017-12-31 03:18:53,124 Stage-1 map = 11%,  reduce = 0%, Cumulative CPU 8.23 sec
+2017-12-31 03:18:56,460 Stage-1 map = 24%,  reduce = 0%, Cumulative CPU 10.54 sec
+2017-12-31 03:18:59,729 Stage-1 map = 31%,  reduce = 0%, Cumulative CPU 12.99 sec
+2017-12-31 03:19:02,999 Stage-1 map = 39%,  reduce = 0%, Cumulative CPU 15.65 sec
+2017-12-31 03:19:06,247 Stage-1 map = 50%,  reduce = 0%, Cumulative CPU 18.44 sec
+2017-12-31 03:19:07,359 Stage-1 map = 73%,  reduce = 0%, Cumulative CPU 19.04 sec
+2017-12-31 03:19:09,539 Stage-1 map = 80%,  reduce = 0%, Cumulative CPU 20.98 sec
+2017-12-31 03:19:10,610 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 21.86 sec
+2017-12-31 03:19:18,101 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 23.51 sec
+MapReduce Total cumulative CPU time: 23 seconds 510 msec
+Ended Job = job_1514717379401_0001
+MapReduce Jobs Launched: 
+Stage-Stage-1: Map: 2  Reduce: 1   Cumulative CPU: 23.51 sec   HDFS Read: 492341774 HDFS Write: 8 SUCCESS
+Total MapReduce CPU Time Spent: 23 seconds 510 msec
+OK
+3002458
+Time taken: 62.123 seconds, Fetched: 1 row(s)
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive (h1b_project)> select * from h1b_app1 where case_status='NA';
+OK
+3002446	NA	NA	NA	NA	NA	NA	NA	BERKLEY HEIGHTS, NEW JERSEY	-74.4310524	40.6808726
+3002447	NA	NA	NA	NA	NA	NA	NA	SCHENECTADY , NEW YORK	-73.9395687	42.8142432
+3002448	NA	NA	NA	NA	NA	NA	NA	MOUTAIN VIEW, CALIFORNIA	-122.0838511	37.3860517
+3002449	NA	NA	NA	NA	NA	NA	NA	ST.PAUL, MINNESOTA	-93.0899578	44.9537029
+3002450	NA	NA	NA	NA	NA	NA	NA	NEW TOWN, PENNSYLVANIA	-74.9322596	40.2283371
+3002451	NA	NA	NA	NA	NA	NA	NA	WESTMINISTER, COLORADO	-105.0372046	39.8366528
+3002452	NA	NA	NA	NA	NA	NA	NA	FREEMONT, CALIFORNIA	-121.9885719	37.5482697
+3002453	NA	NA	NA	NA	NA	NA	NA	LAVERGNE, TENNESSEE	-86.5819394	36.0156178
+3002454	NA	NA	NA	NA	NA	NA	NA	NYC, NEW YORK	-74.0059413	40.7127837
+3002455	NA	NA	NA	NA	NA	NA	NA	SOUTH LAKE, TEXAS	-97.1341783	32.9412363
+3002456	NA	NA	NA	NA	NA	NA	NA	CLINTON, NEW JERSEY	-74.90989	40.6367682
+3002457	NA	NA	NA	NA	NA	NA	NA	OWINGS MILL, MARYLAND	-76.7802528	39.4195499
+3002458	NA	NA	NA	NA	NA	NA	NA	ALTANTA, GEORGIA	-84.3879824	33.7489954
+Time taken: 0.16 seconds, Fetched: 13 row(s)
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive (h1b_project)> select s_no, COUNT(*) as count from h1b_app1 group by s_no having count > 1;
+Query ID = hduser_20171231033929_ebfb8185-f5be-4b9a-be48-a762c8e14b64
+Total jobs = 1
+Launching Job 1 out of 1
+Number of reduce tasks not specified. Estimated from input data size: 2
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1514717379401_0003, Tracking URL = http://ubuntu:8088/proxy/application_1514717379401_0003/
+Kill Command = /usr/local/hadoop/bin/hadoop job  -kill job_1514717379401_0003
+Hadoop job information for Stage-1: number of mappers: 2; number of reducers: 2
+2017-12-31 03:39:37,256 Stage-1 map = 0%,  reduce = 0%
+2017-12-31 03:39:56,918 Stage-1 map = 5%,  reduce = 0%, Cumulative CPU 8.53 sec
+2017-12-31 03:39:59,083 Stage-1 map = 11%,  reduce = 0%, Cumulative CPU 9.94 sec
+2017-12-31 03:40:00,153 Stage-1 map = 16%,  reduce = 0%, Cumulative CPU 11.36 sec
+2017-12-31 03:40:03,494 Stage-1 map = 24%,  reduce = 0%, Cumulative CPU 14.35 sec
+2017-12-31 03:40:05,647 Stage-1 map = 27%,  reduce = 0%, Cumulative CPU 15.78 sec
+2017-12-31 03:40:06,739 Stage-1 map = 31%,  reduce = 0%, Cumulative CPU 17.18 sec
+2017-12-31 03:40:08,947 Stage-1 map = 35%,  reduce = 0%, Cumulative CPU 18.55 sec
+2017-12-31 03:40:10,028 Stage-1 map = 39%,  reduce = 0%, Cumulative CPU 19.94 sec
+2017-12-31 03:40:12,241 Stage-1 map = 43%,  reduce = 0%, Cumulative CPU 21.33 sec
+2017-12-31 03:40:13,323 Stage-1 map = 52%,  reduce = 0%, Cumulative CPU 22.77 sec
+2017-12-31 03:40:15,502 Stage-1 map = 57%,  reduce = 0%, Cumulative CPU 25.35 sec
+2017-12-31 03:40:18,718 Stage-1 map = 63%,  reduce = 0%, Cumulative CPU 28.17 sec
+2017-12-31 03:40:19,774 Stage-1 map = 80%,  reduce = 0%, Cumulative CPU 28.62 sec
+2017-12-31 03:40:21,872 Stage-1 map = 83%,  reduce = 0%, Cumulative CPU 30.56 sec
+2017-12-31 03:40:24,046 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 32.26 sec
+2017-12-31 03:40:38,077 Stage-1 map = 100%,  reduce = 34%, Cumulative CPU 35.18 sec
+2017-12-31 03:40:39,157 Stage-1 map = 100%,  reduce = 67%, Cumulative CPU 37.98 sec
+2017-12-31 03:40:41,302 Stage-1 map = 100%,  reduce = 83%, Cumulative CPU 39.56 sec
+2017-12-31 03:40:42,435 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 41.45 sec
+MapReduce Total cumulative CPU time: 41 seconds 450 msec
+Ended Job = job_1514717379401_0003
+MapReduce Jobs Launched: 
+Stage-Stage-1: Map: 2  Reduce: 2   Cumulative CPU: 41.45 sec   HDFS Read: 492347042 HDFS Write: 0 SUCCESS
+Total MapReduce CPU Time Spent: 41 seconds 450 msec
+OK
+Time taken: 74.443 seconds
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive (h1b_project)> CREATE TABLE h1b_app2(s_no int, case_status string, employer_name string, soc_name string, job_title string, full_time_position string, prevailing_wage bigint, year string, worksite string, longtitude double, latitude double)
+                  > ROW FORMAT DELIMITED
+                  > FIELDS TERMINATED BY '\t'
+                  > STORED AS TEXTFILE;
+OK
+Time taken: 0.118 seconds
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive (h1b_project)> show tables;
+OK
+h1b_app1
+h1b_app2
+Time taken: 0.034 seconds, Fetched: 2 row(s)
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive (h1b_project)> INSERT OVERWRITE TABLE h1b_app2
+                  > SELECT regexp_replace(s_no, "\t", ""),
+                  > regexp_replace(case_status, "\t", ""),
+                  > regexp_replace(employer_name, "\t", ""),
+                  > regexp_replace(soc_name, "\t", ""),
+                  > regexp_replace(job_title, "\t", ""),
+                  > regexp_replace(full_time_position, "\t", ""),
+                  > regexp_replace(prevailing_wage, "\t", ""),
+                  > regexp_replace(year, "\t", ""),
+                  > regexp_replace(worksite, "\t", ""),
+                  > regexp_replace(longitude, "\t", ""),
+                  > regexp_replace(latitude, "\t", "")
+                  > FROM h1b_app1
+                  > WHERE case_status != 'NA';
+
+Query ID = hduser_20171231052217_9565fccc-6f94-434d-b554-05ee08d413af
+Total jobs = 3
+Launching Job 1 out of 3
+Number of reduce tasks is set to 0 since there's no reduce operator
+Starting Job = job_1514717379401_0004, Tracking URL = http://ubuntu:8088/proxy/application_1514717379401_0004/
+Kill Command = /usr/local/hadoop/bin/hadoop job  -kill job_1514717379401_0004
+Hadoop job information for Stage-1: number of mappers: 2; number of reducers: 0
+2017-12-31 05:22:37,363 Stage-1 map = 0%,  reduce = 0%
+2017-12-31 05:23:37,473 Stage-1 map = 0%,  reduce = 0%, Cumulative CPU 7.32 sec
+2017-12-31 05:23:53,674 Stage-1 map = 12%,  reduce = 0%, Cumulative CPU 18.58 sec
+2017-12-31 05:24:03,600 Stage-1 map = 17%,  reduce = 0%, Cumulative CPU 24.81 sec
+2017-12-31 05:24:09,302 Stage-1 map = 24%,  reduce = 0%, Cumulative CPU 27.59 sec
+2017-12-31 05:24:20,848 Stage-1 map = 29%,  reduce = 0%, Cumulative CPU 34.17 sec
+2017-12-31 05:24:30,719 Stage-1 map = 35%,  reduce = 0%, Cumulative CPU 36.96 sec
+2017-12-31 05:24:43,274 Stage-1 map = 47%,  reduce = 0%, Cumulative CPU 44.19 sec
+2017-12-31 05:24:53,168 Stage-1 map = 59%,  reduce = 0%, Cumulative CPU 50.62 sec
+2017-12-31 05:25:01,794 Stage-1 map = 66%,  reduce = 0%, Cumulative CPU 56.6 sec
+2017-12-31 05:25:04,991 Stage-1 map = 71%,  reduce = 0%, Cumulative CPU 59.03 sec
+2017-12-31 05:25:14,847 Stage-1 map = 82%,  reduce = 0%, Cumulative CPU 63.84 sec
+2017-12-31 05:25:17,060 Stage-1 map = 85%,  reduce = 0%, Cumulative CPU 64.55 sec
+2017-12-31 05:25:21,363 Stage-1 map = 90%,  reduce = 0%, Cumulative CPU 67.65 sec
+2017-12-31 05:25:30,121 Stage-1 map = 95%,  reduce = 0%, Cumulative CPU 71.57 sec
+2017-12-31 05:25:35,713 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 72.72 sec
+MapReduce Total cumulative CPU time: 1 minutes 12 seconds 720 msec
+Ended Job = job_1514717379401_0004
+Stage-4 is selected by condition resolver.
+Stage-3 is filtered out by condition resolver.
+Stage-5 is filtered out by condition resolver.
+Moving data to: hdfs://localhost:54310/user/hive/warehouse/h1b_project.db/h1b_app2/.hive-staging_hive_2017-12-31_05-22-17_610_5797000314840748314-1/-ext-10000
+Loading data to table h1b_project.h1b_app2
+Table h1b_project.h1b_app2 stats: [numFiles=2, numRows=3002445, totalSize=449857680, rawDataSize=446855235]
+MapReduce Jobs Launched: 
+Stage-Stage-1: Map: 2   Cumulative CPU: 74.01 sec   HDFS Read: 492342138 HDFS Write: 449857856 SUCCESS
+Total MapReduce CPU Time Spent: 1 minutes 14 seconds 10 msec
+OK
+Time taken: 202.104 seconds
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive (h1b_project)> select COUNT(*) from h1b_app2;
+
+Query ID = hduser_20171231053755_d26a4264-8cb7-460e-8520-7202e4a86d1a
+Total jobs = 1
+Launching Job 1 out of 1
+Number of reduce tasks determined at compile time: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1514717379401_0005, Tracking URL = http://ubuntu:8088/proxy/application_1514717379401_0005/
+Kill Command = /usr/local/hadoop/bin/hadoop job  -kill job_1514717379401_0005
+Hadoop job information for Stage-1: number of mappers: 2; number of reducers: 1
+2017-12-31 05:38:03,003 Stage-1 map = 0%,  reduce = 0%
+2017-12-31 05:38:21,489 Stage-1 map = 15%,  reduce = 0%, Cumulative CPU 2.37 sec
+2017-12-31 05:38:23,449 Stage-1 map = 50%,  reduce = 0%, Cumulative CPU 2.84 sec
+2017-12-31 05:38:33,758 Stage-1 map = 61%,  reduce = 0%, Cumulative CPU 7.68 sec
+2017-12-31 05:38:36,347 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 8.47 sec
+2017-12-31 05:38:46,222 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 10.06 sec
+MapReduce Total cumulative CPU time: 10 seconds 60 msec
+Ended Job = job_1514717379401_0005
+MapReduce Jobs Launched: 
+Stage-Stage-1: Map: 2  Reduce: 1   Cumulative CPU: 10.06 sec   HDFS Read: 449933202 HDFS Write: 8 SUCCESS
+Total MapReduce CPU Time Spent: 10 seconds 60 msec
+OK
+3002445
+Time taken: 56.797 seconds, Fetched: 1 row(s)
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive (h1b_project)> select case_status, COUNT(*) from h1b_app2 group by case_status;
+Query ID = hduser_20171231054733_49a92747-a081-4d3b-b9f8-5e71b1b44c1c
+Total jobs = 1
+Launching Job 1 out of 1
+Number of reduce tasks not specified. Estimated from input data size: 2
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1514717379401_0006, Tracking URL = http://ubuntu:8088/proxy/application_1514717379401_0006/
+Kill Command = /usr/local/hadoop/bin/hadoop job  -kill job_1514717379401_0006
+Hadoop job information for Stage-1: number of mappers: 2; number of reducers: 2
+2017-12-31 05:47:42,231 Stage-1 map = 0%,  reduce = 0%
+2017-12-31 05:47:58,323 Stage-1 map = 61%,  reduce = 0%, Cumulative CPU 5.51 sec
+2017-12-31 05:47:59,382 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 6.63 sec
+2017-12-31 05:48:11,163 Stage-1 map = 100%,  reduce = 50%, Cumulative CPU 7.81 sec
+2017-12-31 05:48:12,233 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 8.96 sec
+MapReduce Total cumulative CPU time: 8 seconds 960 msec
+Ended Job = job_1514717379401_0006
+MapReduce Jobs Launched: 
+Stage-Stage-1: Map: 2  Reduce: 2   Cumulative CPU: 8.96 sec   HDFS Read: 449937556 HDFS Write: 153 SUCCESS
+Total MapReduce CPU Time Spent: 8 seconds 960 msec
+OK
+
+CERTIFIED-WITHDRAWN	202659
+PENDING QUALITY AND COMPLIANCE REVIEW - UNASSIGNED	15
+REJECTED	2
+WITHDRAWN	89799
+CERTIFIED	2615623
+DENIED	94346
+INVALIDATED	1
+
+Time taken: 39.583 seconds, Fetched: 7 row(s)
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive (h1b_project)> select employer_name, COUNT(*) from h1b_app2 group by employer_name;
+Time taken: 103.929 seconds, Fetched: 236013 row(s)
+
+--> A lot of errors over here.
+
+=====================================================================================================================
+
+
