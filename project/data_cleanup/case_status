@@ -1,0 +1,174 @@
+			DATA PRE-PROCESSING
+			===================
+
+COLUMN: case_status
+===================
+
+hive (h1b_project)> CREATE TABLE h1b_app3(s_no int, case_status string, employer_name string, soc_name string, job_title string, full_time_position string, prevailing_wage bigint, year string, worksite string, longitude double, latitude double)
+                  > ROW FORMAT DELIMITED
+                  > FIELDS TERMINATED BY '\t'
+                  > STORED AS TEXTFILE;
+OK
+Time taken: 0.149 seconds
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive (h1b_project)> INSERT OVERWRITE TABLE h1b_app3
+                  > SELECT s_no,
+                  > CASE WHEN TRIM(case_status) = "PENDING QUALITY AND COMPLIANCE REVIEW - UNASSIGNED" THEN "DENIED"
+                  > WHEN TRIM(case_status) = "REJECTED" THEN "DENIED"
+                  > WHEN TRIM(case_status) = "INVALIDATED" THEN "DENIED"
+                  > ELSE case_status END,
+                  > employer_name, soc_name, job_title, full_time_position, prevailing_wage, year, worksite, longitude, latitude
+                  > FROM h1b_app2;
+FAILED: SemanticException [Error 10004]: Line 7:89 Invalid table alias or column reference 'longitude': (possible column names are: s_no, case_status, employer_name, soc_name, job_title, full_time_position, prevailing_wage, year, worksite, longitute, latitute)
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive (h1b_project)> describe h1b_app2;
+OK
+s_no                	int                 	                    
+case_status         	string              	                    
+employer_name       	string              	                    
+soc_name            	string              	                    
+job_title           	string              	                    
+full_time_position  	string              	                    
+prevailing_wage     	bigint              	                    
+year                	string              	                    
+worksite            	string              	                    
+longitute           	double              	                    
+latitute            	double              	                    
+Time taken: 1.011 seconds, Fetched: 11 row(s)
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive (h1b_project)> describe h1b_app1;
+OK
+s_no                	string              	from deserializer   
+case_status         	string              	from deserializer   
+employer_name       	string              	from deserializer   
+soc_name            	string              	from deserializer   
+job_title           	string              	from deserializer   
+full_time_position  	string              	from deserializer   
+prevailing_wage     	string              	from deserializer   
+year                	string              	from deserializer   
+worksite            	string              	from deserializer   
+longitude           	string              	from deserializer   
+latitude            	string              	from deserializer   
+Time taken: 0.316 seconds, Fetched: 11 row(s)
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive (h1b_project)> alter table h1b_app2 change longitute longitude double;
+OK
+Time taken: 1.564 seconds
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive (h1b_project)> alter table h1b_app2 change latitute latitude double;
+OK
+Time taken: 0.843 seconds
+
+-------------------------------------------------------------------------------------------------------------------- 
+
+hive (h1b_project)> describe h1b_app2;
+OK
+s_no                	int                 	                    
+case_status         	string              	                    
+employer_name       	string              	                    
+soc_name            	string              	                    
+job_title           	string              	                    
+full_time_position  	string              	                    
+prevailing_wage     	bigint              	                    
+year                	string              	                    
+worksite            	string              	                    
+longitude           	double              	                    
+latitude            	double              	                    
+Time taken: 0.14 seconds, Fetched: 11 row(s)
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive (h1b_project)> INSERT OVERWRITE TABLE h1b_app3
+                  > SELECT s_no,
+                  > CASE WHEN TRIM(case_status) = "PENDING QUALITY AND COMPLIANCE REVIEW - UNASSIGNED" THEN "DENIED"
+                  > WHEN TRIM(case_status) = "REJECTED" THEN "DENIED"
+                  > WHEN TRIM(case_status) = "INVALIDATED" THEN "DENIED"
+                  > ELSE case_status END,
+                  > employer_name, soc_name, job_title, full_time_position, prevailing_wage, year, worksite, longitude, latitude
+                  > FROM h1b_app2;
+Query ID = hduser_20171231070219_a05d0c47-a66c-4a99-a6ac-483667536132
+Total jobs = 3
+Launching Job 1 out of 3
+Number of reduce tasks is set to 0 since there's no reduce operator
+Starting Job = job_1514717379401_0008, Tracking URL = http://ubuntu:8088/proxy/application_1514717379401_0008/
+Kill Command = /usr/local/hadoop/bin/hadoop job  -kill job_1514717379401_0008
+Hadoop job information for Stage-1: number of mappers: 2; number of reducers: 0
+2017-12-31 07:03:05,737 Stage-1 map = 0%,  reduce = 0%
+2017-12-31 07:04:06,495 Stage-1 map = 0%,  reduce = 0%, Cumulative CPU 10.31 sec
+2017-12-31 07:04:30,049 Stage-1 map = 13%,  reduce = 0%, Cumulative CPU 23.21 sec
+2017-12-31 07:05:15,484 Stage-1 map = 18%,  reduce = 0%, Cumulative CPU 41.83 sec
+2017-12-31 07:05:22,107 Stage-1 map = 26%,  reduce = 0%, Cumulative CPU 45.42 sec
+2017-12-31 07:05:55,594 Stage-1 map = 31%,  reduce = 0%, Cumulative CPU 58.32 sec
+2017-12-31 07:06:04,443 Stage-1 map = 39%,  reduce = 0%, Cumulative CPU 62.27 sec
+2017-12-31 07:06:24,020 Stage-1 map = 44%,  reduce = 0%, Cumulative CPU 71.56 sec
+2017-12-31 07:06:43,931 Stage-1 map = 52%,  reduce = 0%, Cumulative CPU 77.62 sec
+2017-12-31 07:07:37,415 Stage-1 map = 57%,  reduce = 0%, Cumulative CPU 97.95 sec
+2017-12-31 07:07:42,163 Stage-1 map = 64%,  reduce = 0%, Cumulative CPU 100.74 sec
+2017-12-31 07:08:30,846 Stage-1 map = 70%,  reduce = 0%, Cumulative CPU 120.94 sec
+2017-12-31 07:08:34,110 Stage-1 map = 77%,  reduce = 0%, Cumulative CPU 122.44 sec
+2017-12-31 07:09:00,973 Stage-1 map = 83%,  reduce = 0%, Cumulative CPU 133.12 sec
+2017-12-31 07:09:06,072 Stage-1 map = 88%,  reduce = 0%, Cumulative CPU 135.03 sec
+2017-12-31 07:09:27,947 Stage-1 map = 94%,  reduce = 0%, Cumulative CPU 142.49 sec
+2017-12-31 07:09:37,823 Stage-1 map = 99%,  reduce = 0%, Cumulative CPU 145.93 sec
+2017-12-31 07:09:40,311 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 146.76 sec
+MapReduce Total cumulative CPU time: 2 minutes 26 seconds 760 msec
+Ended Job = job_1514717379401_0008
+Stage-4 is selected by condition resolver.
+Stage-3 is filtered out by condition resolver.
+Stage-5 is filtered out by condition resolver.
+Moving data to: hdfs://localhost:54310/user/hive/warehouse/h1b_project.db/h1b_app3/.hive-staging_hive_2017-12-31_07-02-19_348_3152549663275040459-1/-ext-10000
+Loading data to table h1b_project.h1b_app3
+Table h1b_project.h1b_app3 stats: [numFiles=2, numRows=3002445, totalSize=449857011, rawDataSize=446854566]
+MapReduce Jobs Launched: 
+Stage-Stage-1: Map: 2   Cumulative CPU: 146.76 sec   HDFS Read: 449932620 HDFS Write: 449857187 SUCCESS
+Total MapReduce CPU Time Spent: 2 minutes 26 seconds 760 msec
+OK
+Time taken: 443.22 seconds
+
+--------------------------------------------------------------------------------------------------------------------
+
+hive (h1b_project)> SELECT case_status, COUNT(*) FROM h1b_app3 GROUP BY case_status;
+Query ID = hduser_20171231071404_2040808e-2528-453d-a30c-8d34948266a6
+Total jobs = 1
+Launching Job 1 out of 1
+Number of reduce tasks not specified. Estimated from input data size: 2
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+  set mapreduce.job.reduces=<number>
+Starting Job = job_1514717379401_0009, Tracking URL = http://ubuntu:8088/proxy/application_1514717379401_0009/
+Kill Command = /usr/local/hadoop/bin/hadoop job  -kill job_1514717379401_0009
+Hadoop job information for Stage-1: number of mappers: 2; number of reducers: 2
+2017-12-31 07:14:15,182 Stage-1 map = 0%,  reduce = 0%
+2017-12-31 07:15:00,160 Stage-1 map = 10%,  reduce = 0%, Cumulative CPU 20.62 sec
+2017-12-31 07:15:02,329 Stage-1 map = 68%,  reduce = 0%, Cumulative CPU 24.08 sec
+2017-12-31 07:15:03,507 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 24.86 sec
+2017-12-31 07:15:16,531 Stage-1 map = 100%,  reduce = 50%, Cumulative CPU 26.49 sec
+2017-12-31 07:15:17,615 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 27.89 sec
+MapReduce Total cumulative CPU time: 27 seconds 890 msec
+Ended Job = job_1514717379401_0009
+MapReduce Jobs Launched: 
+Stage-Stage-1: Map: 2  Reduce: 2   Cumulative CPU: 27.89 sec   HDFS Read: 449936691 HDFS Write: 74 SUCCESS
+Total MapReduce CPU Time Spent: 27 seconds 890 msec
+OK
+
+CERTIFIED-WITHDRAWN	202659
+WITHDRAWN	89799
+CERTIFIED	2615623
+DENIED	94364
+
+Time taken: 74.153 seconds, Fetched: 4 row(s)
+
+=====================================================================================================================
