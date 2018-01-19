@@ -1,0 +1,5 @@
+we are learning hadoop
+hadoop has two main components
+hdfs and mapreduce
+hdfs is for storage
+mapreduce is a processing framework

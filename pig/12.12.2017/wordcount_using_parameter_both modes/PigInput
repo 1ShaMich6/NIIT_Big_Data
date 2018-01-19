@@ -1,0 +1,5 @@
+inp = textfile1.txt
+output = wordcount_param_output
+
+hdfs_inp = /pig/textfile1.txt
+hdfs_output = /pig/wordcount_param_output
