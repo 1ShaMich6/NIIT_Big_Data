@@ -1,0 +1,1 @@
+sqoop export --connect jdbc:mysql://localhost/h1b_project --username root -P --table query10_output --update-mode  allowinsert --update-key job_title   --export-dir /niit_final_project/query_10/p* --input-fields-terminated-by '\t' ;
