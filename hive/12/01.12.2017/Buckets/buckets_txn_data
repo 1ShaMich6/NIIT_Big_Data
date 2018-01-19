@@ -1,0 +1,38 @@
+Transaction Data:
+=================
+
+Bucketing: Clustereing data into various groups
+
+1. Create a partitioned table 'txn_recs_by_cat5' with MULTIPLE BUCKETS
+
+(i)
+CREATE TABLE txn_recs_by_cat5(txnno INT, txndate STRING, custno INT, amount DOUBLE, product STRING, city STRING, state STRING, spendby STRING)
+PARTITIONED BY (category STRING)
+CLUSTERED BY (state) INTO 10 BUCKETS
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+STORED AS textfile;
+
+(ii) Set the Bucketing property of Hive as 'true'
+
+SET hive.enforce.bucketing=true;
+
+(iii)
+FROM txnrecords t INSERT OVERWRITE TABLE txn_recs_by_cat5 PARTITION(category)
+SELECT t.txnno, t.txndate, t.custno, t.amount, t.product, t.city, t.state, t.spendby, t.category
+DISTRIBUTE BY category;
+
+------------------------------------------------------
+
+/*/ Records will be grouped / "bucketed" based on a HASHKEY value which is internally generated.
+
+/*/Here, just like in Partitioning in Hive, the blocks are created PHYSICALLY and not logically.
+
+/*/ But Bucketing is NOT EQUAL TO Partitioning
+
+/*/ Fine tuning of data can be done by the use of:
+	1. Partitioning
+	2. Bucketing
+
+/*/ ADVANTAGE: To reduce the overhead time of processing.
+
+------------------------------------------------------- 

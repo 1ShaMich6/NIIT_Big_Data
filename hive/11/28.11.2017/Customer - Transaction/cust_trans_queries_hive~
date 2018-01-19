@@ -1,0 +1,42 @@
+CUSTOMER-TRANSACTION DATASET
+============================
+
+Q1. Find the number of transactions made by each customer.
+A:
+(i) SELECT custno, COUNT(*) FROM txnrecords GROUP BY custno;
+----> 1 MapReduce job
+
+(ii) SELECT custno, COUNT(*) AS custcount FROM txnrecords GROUP BY custno ORDER BY custcount;
+----> 2 MapReduce jobs : 1 - group by
+			 2 - order by
+
+----------------------------------------------------------
+
+Q2. Find the top 10 customers from the transaction data who have done maximum purchase.
+A:
+(i) SELECT custno, SUM(amount) AS totalamount FROM txnrecords GROUP BY custno ORDER BY totalamount DESC LIMIT 10;
+
+(ii) 
+//To round of the floating num to a particular number of decimal places --- use ROUND() method
+
+SELECT custno, ROUND(SUM(amount), 2) AS totalamount FROM txnrecords GROUP BY custno ORDER BY totalamount DESC LIMIT 10;
+
+
+(iii)
+//Using the concept of Join
+
+SELECT custno, ROUND(SUM(amount), 2) AS totalamount FROM txnrecords A JOIN customer B ON (A.custno = B.custno) GROUP BY custno ORDER BY totalamount DESC LIMIT 10;
+
+##This will give a Semantic error
+"FAILED: SemanticException Column custno Found in more than One Tables/Subqueries"
+ 
+The above query will work in MySQL but not in Hive
+
+REASON:
+=======
+MapReduce cannot figure which columns are key and which are value.  
+
+
+SELECT B.custno, ROUND(SUM(A.amount), 2) AS totalamount FROM txnrecords A JOIN customer B ON (A.custno = B.custno) GROUP BY B.custno ORDER BY totalamount DESC LIMIT 10;
+
+##This query gives more clarity to the user.

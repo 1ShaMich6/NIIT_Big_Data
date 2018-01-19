@@ -1,0 +1,77 @@
+CUSTOMER-TRANSACTION DATASET --- contd
+============================
+
+// gives you a DETAILED description of a table 
+describe formatted customer;
+
+OUTPUT:
+=======
+# col_name            	data_type           	comment             
+	 	 
+custno              	int                 	                    
+firstname           	string              	                    
+lastname            	string              	                    
+age                 	int                 	                    
+profession          	string              	                    
+	 	 
+# Detailed Table Information	 	 
+Database:           	retail              	 
+Owner:              	hduser              	 
+CreateTime:         	Mon Nov 27 03:17:01 PST 2017	 
+LastAccessTime:     	UNKNOWN             	 
+Protect Mode:       	None                	 
+Retention:          	0                   	 
+Location:           	hdfs://localhost:54310/user/hive/warehouse/retail.db/customer	 
+Table Type:         	MANAGED_TABLE       	 
+Table Parameters:	 	 
+	COLUMN_STATS_ACCURATE	true                
+	numFiles            	2                   
+	numRows             	0                   
+	rawDataSize         	0                   
+	totalSize           	391385              
+	transient_lastDdlTime	1511782115          
+	 	 
+# Storage Information	 	 
+SerDe Library:      	org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe	 
+InputFormat:        	org.apache.hadoop.mapred.TextInputFormat	 
+OutputFormat:       	org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat	 
+Compressed:         	No                  	 
+Num Buckets:        	-1                  	 
+Bucket Columns:     	[]                  	 
+Sort Columns:       	[]                  	 
+Storage Desc Params:	 	 
+	field.delim         	,                   
+	serialization.format	,                   
+Time taken: 0.122 seconds, Fetched: 36 row(s)
+
+---------------------------------------------------------
+
+//removes the data in the table --- the table structure is still there
+
+truncate table customer;
+
+//you simply drop the actual data file from the data warehouse
+----------------------------------------------------------
+
+LOAD DATA INPATH '/customer_chain_mapreduce/custs' OVERWRITE INTO TABLE customer;
+
+/*/ 'cust' is already available on HDFS
+
+/*/ Instead of copying this data file, Hadoop will MOVE this file into customer table, more specifically '/user/hive/warehouse/retail/customer' directory.
+
+/*/ After executing the above query --- you will not find the 'custs' data file in the "/customer_chain_mapreduce" directory
+
+/*/ Also note, that the Block IDs of the file will REMAIN the same
+
+/*/ You are simply changing the HDFS File path
+
+/*/ This query does NOT create or delete blocks.
+
+/*/ This is one of the properties of your MANAGE TABLE
+
+-------------------------------------------------------
+
+//To delete the structure of a table
+DROP TABLE customer;
+
+

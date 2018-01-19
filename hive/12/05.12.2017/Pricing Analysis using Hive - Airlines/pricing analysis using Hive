@@ -1,0 +1,81 @@
+1. create database airlines;
+
+2. use airlines;
+
+3. 
+create table airlinerecords(year INT, quarter_num INT, rev_seat DOUBLE, booked_seats BIGINT) 
+row format delimited
+fields terminated by ','
+stored as textfile
+tblproperties("skip.header.line.count"="1");
+
+4.
+LOAD DATA LOCAL INPATH '/home/hduser/airlines.csv' OVERWRITE INTO TABLE airlinerecords;
+
+5. select * from airlinerecords;
+
+6. select distinct(year) from airlinerecords;
+
+-----------------------------------------------
+Query 1: Find the total sales done in each year?
+
+select year, cast(sum(rev_seat * booked_seats) as BIGINT) from airlinerecords group by year;
+
+
+OUTPUT:
+1995	43494243
+1996	46358778
+1997	45385236
+1998	42035717
+1999	48757714
+2000	52342926
+2001	55533779
+2002	47499146
+2003	49273210
+2004	50631364
+2005	46376786
+2006	50437898
+2007	57309216
+2008	57653170
+2009	46746446
+2010	54861521
+2011	51888286
+2012	62199127
+2013	66363208
+2014	62624175
+2015	62378990
+
+-----------------------------------------------------
+Query 2: Find the number of passengers travelled in a year.
+
+select year, sum(booked_seats) from airlinerecords group by year;
+
+
+OUTPUT:
+
+1995	148520
+1996	167223
+1997	157972
+1998	135678
+1999	150000
+2000	154376
+2001	173598
+2002	152195
+2003	156153
+2004	164800
+2005	150610
+2006	153789
+2007	176299
+2008	166897
+2009	150308
+2010	163741
+2011	142647
+2012	166076
+2013	173676
+2014	159823
+2015	165438
+
+
+---------------------------------------------------------
+
+

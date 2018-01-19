@@ -1,0 +1,851 @@
+1. 
+create table retail_records (transaction_date STRING, cust_id STRING, age_group STRING, residence_area STRING, category STRING, product_id STRING, quantity INT, total_cost BIGINT, total_sales BIGINT)
+row format delimited
+fields terminated by '\;'
+stored as textfile;
+
+
+-> '\;' - this is because semi-colon is a special character ... as it also used as a syntax terminator.
+
+-----------------------------------------------------------------------------------------------------------------
+
+2.
+LOAD DATA LOCAL INPATH '/home/hduser/D11' OVERWRITE INTO TABLE retail_records;
+
+LOAD DATA LOCAL INPATH '/home/hduser/D12' INTO TABLE retail_records;
+
+LOAD DATA LOCAL INPATH '/home/hduser/D01' INTO TABLE retail_records;
+
+LOAD DATA LOCAL INPATH '/home/hduser/D02' INTO TABLE retail_records;
+
+------------------------------------------------------------------------------------------------------------------
+
+3. Find the total number of records for all 4 months.
+
+select count(*) from retail_records;
+
+------------------------------------------------------------------------------------------------------------------
+
+4. Find the number of records for each month.
+
+select month(transaction_date), count(*) from retail_records group by month(transaction_date);
+
+------------------------------------------------------------------------------------------------------------------
+
+5. Verification of Data (checking if sales or cost data is missing or negative)
+
+---> Because you need to check your data before you begin working on it. Else you will end up with wrong result.
+
+(i) select * from retail_records where total_sales is null or total_cost is null;
+
+(ii) select * from retail_records where total_sales <= 0 or total_cost <= 0;
+
+------------------------------------------------------------------------------------------------------------------
+				*** CLEANUP PROCESS - VERY IMPORTANT ***
+
+6. 
+Hive doesn't allow you to update or delete records (Because of HDFS)
+But you can create a new separate table with conditions
+
+(I) CREATE ANOTHER TABLE WITH THE SAME STRUCTURE:
+
+create table retail_records_new (transaction_date STRING, cust_id STRING, age_group STRING, residence_area STRING, category STRING, product_id STRING, quantity INT, total_cost BIGINT, total_sales BIGINT)
+row format delimited
+fields terminated by '\;'
+stored as textfile;
+
+(II)
+
+insert overwrite table retail_records_new
+select * from retail_records where total_sales > 0 AND total_cost > 0;
+
+
+(III) Now verify the data in the new table "retail_records_new"
+
+	(a) select count(*) from retail_records_new;
+
+	(b) select * from retail_records_new where total_sales <= 0 or total_cost <= 0;
+
+Now your data is ready to use.
+
+----> This is to find bugs within your data.
+
+--------------------------------------------------------------------------------------------------------------------
+
+7. 
+Store questions:
+
+A1. Find out the customer I.D for the customer and the date of transaction who has spent the maximum amount in a month and in all the 4 months. 
+Answer would be - total 5 customer IDs
+1) One for each month
+2) One for all the 4 months.
+
+SOLUTION:
+===========
+select transaction_date, cust_id, max(total_sales) from retail_records_new group by cust_id, transaction_date;
+
+select transaction_date, cust_id, max(total_sales) from retail_records_new where month(transaction_date) = 11 group by cust_id, transaction_date;
+
+
+Step by Step:
+--------------
+(i) select max(total_sales) from retail_records_new where month(transaction_date) = 11;
+
+(ii) select cust_id, total_sales from retail_records_new where total_sales = (select max(A.total_sales) from retail_records_new A where month(transaction_date) = 11);
+
+
+(iii) select cust_id, total_sales from retail_records_new where total_sales in (select max(A.total_sales) from retail_records_new A where month(transaction_date) = 11);
+
+
+(iv) select transaction_date, cust_id, total_sales from retail_records_new where total_sales in (select max(A.total_sales) from retail_records_new A where month(transaction_date) = 11);
+
+*** What happens here is that you are trying to look for the max sales in NOVEMBER across all the 4 months ... which in WRONG.
+
+*** When you are taking max sales in NOVEMBER, you have to check transactions only within the month of November
+
+*** Therefore, you need to mention month in the main query as well (along with the subquery)
+
+
+(v)MONTH = NOVEMBER
+
+select transaction_date, cust_id, total_sales from retail_records_new where month(transaction_date) = 11 and total_sales in (select max(A.total_sales) from retail_records_new A where month(transaction_date) = 11);
+
+(vi) MONTH = DECEMBER    [getting 2 records as output]
+
+select transaction_date, cust_id, total_sales from retail_records_new where month(transaction_date) = 12 and total_sales in (select max(A.total_sales) from retail_records_new A where month(transaction_date) = 12);
+
+(vii) MONTH = JANUARY
+
+select transaction_date, cust_id, total_sales from retail_records_new where month(transaction_date) = 1 and total_sales in (select max(A.total_sales) from retail_records_new A where month(transaction_date) = 1);
+
+(viii) MONTH = FEBRUARY
+
+select transaction_date, cust_id, total_sales from retail_records_new where month(transaction_date) = 2 and total_sales in (select max(A.total_sales) from retail_records_new A where month(transaction_date) = 2);
+
+(ix) ALL THE 4 MONTHS
+
+select transaction_date, cust_id, total_sales from retail_records_new where total_sales in (select max(A.total_sales) from retail_records_new A);
+
+OUTPUT: 2001-02-17 00:00:00	01622362  	444000
+
+--------------------------------------------------------------------------------------------------------------------
+
+A2. Find total gross profit made by each product and also by each category for all the 4 months data.
+
+FORMULA:
+========
+
+gross profit = total_sales - total_cost
+
+
+STEP BY STEP:
+=============
+For each PRODUCT:
+(i) select product_id, sum(total_sales - total_cost) from retail_records_new group by product_id;
+
+(ii) 
+insert overwrite local directory 'home/hduser/product_gross_profit' 
+row format delimited
+fields terminated by '\t'
+select product_id, sum(total_sales - total_cost) from retail_records_new group by product_id;
+
+
+For each CATEGORY:
+(iii) select category, sum(total_sales - total_cost) from retail_records_new group by category;
+
+(iv)
+insert overwrite local directory 'category_gross_profit'
+row format delimited
+fields terminated by '\t'
+select category, sum(total_sales - total_cost) from retail_records_new group by category;
+
+--------------------------------------------------------------------------------------------------------------------
+
+A3. Find total gross profit % made by each product and also by each category for all the 4 months data.
+
+FORMULA:
+=========
+
+gross profit % = (gross_profit / total_sales) * 100 %
+
+STEP BY STEP:
+=============
+
+For each PRODUCT:
+(i) select product_id, sum(total_sales) from retail_records_new group by product_id;
+
+(ii) select product_id, sum(total_sales - total_cost)/sum(total_sales) from retail_records_new group by product_id;
+
+(iii) select product_id, (sum(total_sales - total_cost)*100)/sum(total_sales) from retail_records_new group by product_id;
+
+(iv) select product_id, round((sum(total_sales - total_cost) * 100) / sum(total_sales), 2) from retail_records_new group by product_id;
+
+(v)
+insert overwrite local directory 'product_gp_percent'
+row format delimited
+fields terminated by '\t'
+select product_id, round((sum(total_sales - total_cost) * 100) / sum(total_sales), 2) from retail_records_new group by product_id;
+
+
+For each CATEGORY:
+insert overwrite local directory 'category_gp_percent'
+row format delimited
+fields terminated by '\t'
+select category, round((sum(total_sales - total_cost) * 100) / sum(total_sales), 2) from retail_records_new group by category;
+
+------------------------------------------------------------------------------------------------------------------
+
+B. Find out the top 4 or top 10 product being sold in the monthly basis and in all the 4 months.. Criteria for top should be sales amount.
+
+
+STEP BY STEP:
+=============
+
+FOR ALL THE 4 MONTHS:
+(i) select product_id, sum(total_sales) from retail_records_new group by product_id;
+
+(ii) select product_id, sum(total_sales) as total from retail_records_new group by product_id order by total desc;
+
+(iii) select product_id, sum(total_sales) as total from retail_records_new group by product_id order by total desc limit 10;
+
+(iv) 
+insert overwrite local directory 'top_10_products_all'
+row format delimited
+fields terminated by '\t'
+select product_id, sum(total_sales) as total from retail_records_new group by product_id order by total desc limit 10;
+
+(v) select product_id, sum(total_sales) as total from retail_records_new group by product_id order by total desc limit 4;
+
+(vi)
+insert overwrite local directory 'top_4_products_all'
+row format delimited
+fields terminated by '\t'
+select product_id, sum(total_sales) as total from retail_records_new group by product_id order by total desc limit 4;
+ 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+FOR THE MONTH OF NOVEMBER:
+(i) select product_id, sum(total_sales) as total from retail_records_new where month(transaction_date) = 11 group by product_id order by total desc;
+
+(ii)select product_id, sum(total_sales) as total from retail_records_new where month(transaction_date) = 11 group by product_id order by total desc limit 10;
+
+(iii)
+insert overwrite local directory 'top_10_products_nov'
+row format delimited
+fields terminated by '\t'
+select product_id, sum(total_sales) as total from retail_records_new where month(transaction_date) = 11 group by product_id order by total desc limit 10;
+
+
+(iv)select product_id, sum(total_sales) as total from retail_records_new where month(transaction_date) = 11 group by product_id order by total desc limit 4;
+
+(v)
+insert overwrite local directory 'top_4_products_nov'
+row format delimited
+fields terminated by '\t'
+select product_id, sum(total_sales) as total from retail_records_new where month(transaction_date) = 11 group by product_id order by total desc limit 4;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+FOR THE MONTH OF DECEMBER:
+(i)
+insert overwrite local directory 'top_10_products_dec'
+row format delimited
+fields terminated by '\t'
+select product_id, sum(total_sales) as total from retail_records_new where month(transaction_date) = 12 group by product_id order by total desc limit 10;
+
+(ii)
+insert overwrite local directory 'top_4_products_dec'
+row format delimited
+fields terminated by '\t'
+select product_id, sum(total_sales) as total from retail_records_new where month(transaction_date) = 12 group by product_id order by total desc limit 4;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+FOR THE MONTH OF JANUARY:
+(i)
+insert overwrite local directory 'top_10_products_jan'
+row format delimited
+fields terminated by '\t'
+select product_id, sum(total_sales) as total from retail_records_new where month(transaction_date) = 1 group by product_id order by total desc limit 10;
+
+(ii)
+insert overwrite local directory 'top_4_products_jan'
+row format delimited
+fields terminated by '\t'
+select product_id, sum(total_sales) as total from retail_records_new where month(transaction_date) = 1 group by product_id order by total desc limit 4;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+FOR THE MONTH OF FEBRUARY:
+(i)
+insert overwrite local directory 'top_10_products_feb'
+row format delimited
+fields terminated by '\t'
+select product_id, sum(total_sales) as total from retail_records_new where month(transaction_date) = 2 group by product_id order by total desc limit 10;
+
+(ii)
+insert overwrite local directory 'top_4_products_feb'
+row format delimited
+fields terminated by '\t'
+select product_id, sum(total_sales) as total from retail_records_new where month(transaction_date) = 2 group by product_id order by total desc limit 4;
+
+----------------------------------------------------------------------------------------------------------------
+
+C1.Find out the (top 5*) viable products and the (top 5*) product subclass for the age group A, B, C etc..... Data should be taken for all the 4 months
+
+STEP BY STEP:
+=============
+For each PRODUCT:
+
+AgeGroup == "A "
+================
+(i) select age_group, sum(total_sales - total_cost) as total from retail_records_new where (total_sales - total_cost) > 0 group by age_group having age_group = "A" order by total desc;
+
+	(A) select age_group, sum(total_sales - total_cost) as total from retail_records_new where (total_sales - total_cost) > 0 group by age_group having trim(age_group) = "A" order by total desc;  ***this works***
+
+
+// Note that there is a space included in age_group ---- cause of data set structure
+(ii) select age_group, sum(total_sales - total_cost) as total from retail_records_new where (total_sales - total_cost) > 0 group by age_group having age_group = "A " order by total desc;
+
+(iii) select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where (total_sales - total_cost) > 0 group by age_group, product_id having age_group = "A " order by total desc;
+
+(iv) select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where (total_sales - total_cost) > 0 and age_group = "A " group by age_group, product_id order by total desc;
+
+(v) select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where (total_sales - total_cost) > 0 and age_group = "A " group by age_group, product_id order by total desc limit 5;
+
+(vi) select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where (total_sales - total_cost) > 0 and trim(age_group) = "A" group by age_group, product_id order by total desc limit 5;
+
+(vii) insert overwrite local directory 'top_5_profit_products_A'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where (total_sales - total_cost) > 0 and trim(age_group) = "A" group by age_group, product_id order by total desc limit 5;   
+
+#################
+//THE CLAUSE "where (total_sales - total_cost) > 0" yields the WRONG RESULT
+//Maybe the first 5 answers are right --- but after that the result data changes
+##################
+
+(viii)
+insert overwrite local directory 'top_5_profit_products_A'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "A" group by age_group, product_id order by total desc limit 5;   
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AgeGroup == "B"
+===============
+(i) 
+insert overwrite local directory 'top_5_profit_products_B'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "B" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AgeGroup == "C"
+===============
+(i) 
+insert overwrite local directory 'top_5_profit_products_C'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "C" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AgeGroup == "D"
+===============
+(i) 
+insert overwrite local directory 'top_5_profit_products_D'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "D" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AgeGroup == "E"
+===============
+(i) 
+insert overwrite local directory 'top_5_profit_products_E'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "E" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AgeGroup == "F"
+===============
+(i) 
+insert overwrite local directory 'top_5_profit_products_F'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "F" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AgeGroup == "G"
+===============
+(i) 
+insert overwrite local directory 'top_5_profit_products_G'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "G" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AgeGroup == "H"
+===============
+(i) 
+insert overwrite local directory 'top_5_profit_products_H'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "H" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AgeGroup == "I"
+===============
+(i) 
+insert overwrite local directory 'top_5_profit_products_I'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "I" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AgeGroup == "J"
+===============
+(i) 
+insert overwrite local directory 'top_5_profit_products_J'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "J" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AgeGroup == "K"
+===============
+(i) 
+insert overwrite local directory 'top_5_profit_products_K'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "K" group by age_group, product_id order by total desc limit 5;
+
+===========================================================================================
+
+*** Rather than runing individual queries for each age_group ----> create a Batch file
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+###Or there is another way: creating a table for each agegroup ---(if you want to access it anytime later)
+			 and then ... use the UNION command to club all the results together.
+
+
+AGE_GROUP = "A"
+===============
+(i) create table table_pdt_profit_A (age_group STRING, product_id STRING, total_profit BIGINT)
+row format delimited
+fields terminated by ",";
+
+(ii)insert overwrite table table_pdt_profit_A
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "A" group by age_group, product_id order by total desc limit 5;
+
+(iii) select * from table_pdt_profit_A;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AGE_GROUP = "B"
+===============
+(i) create table table_pdt_profit_B (age_group STRING, product_id STRING, total_profit BIGINT)
+row format delimited
+fields terminated by ",";
+
+(ii)insert overwrite table table_pdt_profit_B
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "B" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AGE_GROUP = "C"
+===============
+(i) create table table_pdt_profit_C (age_group STRING, product_id STRING, total_profit BIGINT)
+row format delimited
+fields terminated by ",";
+
+(ii)insert overwrite table table_pdt_profit_C
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "C" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AGE_GROUP = "D"
+===============
+(i) create table table_pdt_profit_D (age_group STRING, product_id STRING, total_profit BIGINT)
+row format delimited
+fields terminated by ",";
+
+(ii) insert overwrite table table_pdt_profit_D
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "D" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AGE_GROUP = "E"
+===============
+(i) create table table_pdt_profit_E (age_group STRING, product_id STRING, total_profit BIGINT)
+row format delimited
+fields terminated by ",";
+
+(ii) insert overwrite table table_pdt_profit_E
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "E" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AGE_GROUP = "F"
+===============
+(i) create table table_pdt_profit_F (age_group STRING, product_id STRING, total_profit BIGINT)
+row format delimited
+fields terminated by ",";
+
+(ii) insert overwrite table table_pdt_profit_F
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "F" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AGE_GROUP = "G"
+===============
+(i) create table table_pdt_profit_G (age_group STRING, product_id STRING, total_profit BIGINT)
+row format delimited
+fields terminated by ",";
+
+(ii) insert overwrite table table_pdt_profit_G
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "G" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AGE_GROUP = "H"
+===============
+(i) create table table_pdt_profit_H (age_group STRING, product_id STRING, total_profit BIGINT)
+row format delimited
+fields terminated by ",";
+
+(ii) insert overwrite table table_pdt_profit_H
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "H" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AGE_GROUP = "I"
+===============
+(i) create table table_pdt_profit_I (age_group STRING, product_id STRING, total_profit BIGINT)
+row format delimited
+fields terminated by ",";
+
+(ii) insert overwrite table table_pdt_profit_I
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "I" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AGE_GROUP = "J"
+===============
+(i) create table table_pdt_profit_J (age_group STRING, product_id STRING, total_profit BIGINT)
+row format delimited
+fields terminated by ",";
+
+(ii) insert overwrite table table_pdt_profit_J
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "J" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AGE_GROUP = "K"
+===============
+(i) create table table_pdt_profit_K (age_group STRING, product_id STRING, total_profit BIGINT)
+row format delimited
+fields terminated by ",";
+
+(ii) insert overwrite table table_pdt_profit_K
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "K" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+UNION of all age groups:
+=========================
+
+(i) SELECT * FROM (SELECT * FROM table_pdt_profit_a UNION SELECT * FROM table_pdt_profit_b UNION SELECT * FROM table_pdt_profit_c UNION SELECT * FROM table_pdt_profit_d UNION SELECT * FROM table_pdt_profit_e UNION SELECT * FROM table_pdt_profit_f UNION SELECT * FROM table_pdt_profit_g UNION SELECT * FROM table_pdt_profit_h UNION SELECT * FROM table_pdt_profit_i UNION SELECT * FROM table_pdt_profit_j UNION SELECT * FROM table_pdt_profit_k) union_table;
+
+(ii) SELECT * FROM (SELECT * FROM table_a UNION SELECT * FROM table_b UNION SELECT * FROM table_c UNION SELECT * FROM table_d UNION SELECT * FROM table_e UNION SELECT * FROM table_f UNION SELECT * FROM table_g UNION SELECT * FROM table_h UNION SELECT * FROM table_i UNION SELECT * FROM table_j UNION SELECT * FROM table_k) union_table ORDER BY union_table.total_profit DESC, union_table.age_group;
+
+(iii) SELECT * FROM (SELECT * FROM table_a UNION SELECT * FROM table_b UNION SELECT * FROM table_c UNION SELECT * FROM table_d UNION SELECT * FROM table_e UNION SELECT * FROM table_f UNION SELECT * FROM table_g UNION SELECT * FROM table_h UNION SELECT * FROM table_i UNION SELECT * FROM table_j UNION SELECT * FROM table_k) union_table ORDER BY union_table.total_profit DESC, union_table.age_group ASC;
+
+(iv) SELECT * FROM (SELECT * FROM table_a UNION SELECT * FROM table_b UNION SELECT * FROM table_c UNION SELECT * FROM table_d UNION SELECT * FROM table_e UNION SELECT * FROM table_f UNION SELECT * FROM table_g UNION SELECT * FROM table_h UNION SELECT * FROM table_i UNION SELECT * FROM table_j UNION SELECT * FROM table_k) union_table ORDER BY union_table.age_group ASC, union_table.total_profit DESC;
+
+
+(v)insert overwrite local directory 'top_5_profit_products_all'
+row format delimited
+fields terminated by '\t'
+SELECT * FROM (SELECT * FROM table_a UNION SELECT * FROM table_b UNION SELECT * FROM table_c UNION SELECT * FROM table_d UNION SELECT * FROM table_e UNION SELECT * FROM table_f UNION SELECT * FROM table_g UNION SELECT * FROM table_h UNION SELECT * FROM table_i UNION SELECT * FROM table_j UNION SELECT * FROM table_k) union_table ORDER BY union_table.age_group ASC, union_table.total_profit DESC;
+
+----------------------------------------------------------
+
+
+C2. Find out the (top 5*) loss making products and the (top 5*) loss making product subclass for the age group A, B, C etc..... Data should be taken for all the 4 months
+
+STEP BY STEP:
+=============
+For each PRODUCT:
+
+AgeGroup == "A "
+================
+(i) insert overwrite local directory 'top_5_loss_products_A'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "A" group by age_group, product_id order by total limit 5;
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AgeGroup == "B"
+===============
+(i) 
+insert overwrite local directory 'top_5_loss_products_B'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "B" group by age_group, product_id order by total limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AgeGroup == "C"
+===============
+(i) 
+insert overwrite local directory 'top_5_loss_products_C'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "C" group by age_group, product_id order by total limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AgeGroup == "D"
+===============
+(i) 
+insert overwrite local directory 'top_5_loss_products_D'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "D" group by age_group, product_id order by total limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AgeGroup == "E"
+===============
+(i) 
+insert overwrite local directory 'top_5_loss_products_E'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "E" group by age_group, product_id order by total limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AgeGroup == "F"
+===============
+(i) 
+insert overwrite local directory 'top_5_loss_products_F'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "F" group by age_group, product_id order by total limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AgeGroup == "G"
+===============
+(i) 
+insert overwrite local directory 'top_5_loss_products_G'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "G" group by age_group, product_id order by total limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AgeGroup == "H"
+===============
+(i) 
+insert overwrite local directory 'top_5_loss_products_H'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "H" group by age_group, product_id order by total limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AgeGroup == "I"
+===============
+(i) 
+insert overwrite local directory 'top_5_loss_products_I'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "I" group by age_group, product_id order by total limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AgeGroup == "J"
+===============
+(i) 
+insert overwrite local directory 'top_5_loss_products_J'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "J" group by age_group, product_id order by total limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AgeGroup == "K"
+===============
+(i) 
+insert overwrite local directory 'top_5_loss_products_K'
+row format delimited
+fields terminated by '\t'
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where trim(age_group) = "K" group by age_group, product_id order by total limit 5;
+
+===========================================================================================
+
+*** Rather than runing individual queries for each age_group ----> create a Batch file
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Or there is another way: creating a table for each agegroup ---(if you want to access it anytime later)
+			 and then ... use the UNION command to club all the results together.
+
+AGE_GROUP = "A"
+===============
+(i) create table table_A (age_group STRING, product_id STRING, total_profit BIGINT)
+row format delimited
+fields terminated by ",";
+
+(ii)insert overwrite table table_A
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where (total_sales - total_cost) > 0 and trim(age_group) = "A" group by age_group, product_id order by total desc limit 5;
+
+(iii) select * from table_A;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AGE_GROUP = "B"
+===============
+(i) create table table_B (age_group STRING, product_id STRING, total_profit BIGINT)
+row format delimited
+fields terminated by ",";
+
+(ii)insert overwrite table table_B
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where (total_sales - total_cost) > 0 and trim(age_group) = "B" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AGE_GROUP = "C"
+===============
+(i) create table table_C (age_group STRING, product_id STRING, total_profit BIGINT)
+row format delimited
+fields terminated by ",";
+
+(ii)insert overwrite table table_C
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where (total_sales - total_cost) > 0 and trim(age_group) = "C" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AGE_GROUP = "D"
+===============
+(i) create table table_D (age_group STRING, product_id STRING, total_profit BIGINT)
+row format delimited
+fields terminated by ",";
+
+(ii)insert overwrite table table_D
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where (total_sales - total_cost) > 0 and trim(age_group) = "D" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AGE_GROUP = "E"
+===============
+(i) create table table_E (age_group STRING, product_id STRING, total_profit BIGINT)
+row format delimited
+fields terminated by ",";
+
+(ii)insert overwrite table table_E
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where (total_sales - total_cost) > 0 and trim(age_group) = "E" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AGE_GROUP = "F"
+===============
+(i) create table table_F (age_group STRING, product_id STRING, total_profit BIGINT)
+row format delimited
+fields terminated by ",";
+
+(ii)insert overwrite table table_F
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where (total_sales - total_cost) > 0 and trim(age_group) = "F" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AGE_GROUP = "G"
+===============
+(i) create table table_G (age_group STRING, product_id STRING, total_profit BIGINT)
+row format delimited
+fields terminated by ",";
+
+(ii)insert overwrite table table_G
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where (total_sales - total_cost) > 0 and trim(age_group) = "G" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AGE_GROUP = "H"
+===============
+(i) create table table_H (age_group STRING, product_id STRING, total_profit BIGINT)
+row format delimited
+fields terminated by ",";
+
+(ii)insert overwrite table table_H
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where (total_sales - total_cost) > 0 and trim(age_group) = "H" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AGE_GROUP = "I"
+===============
+(i) create table table_I (age_group STRING, product_id STRING, total_profit BIGINT)
+row format delimited
+fields terminated by ",";
+
+(ii)insert overwrite table table_I
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where (total_sales - total_cost) > 0 and trim(age_group) = "I" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AGE_GROUP = "J"
+===============
+(i) create table table_J (age_group STRING, product_id STRING, total_profit BIGINT)
+row format delimited
+fields terminated by ",";
+
+(ii)insert overwrite table table_J
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where (total_sales - total_cost) > 0 and trim(age_group) = "J" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AGE_GROUP = "K"
+===============
+(i) create table table_K (age_group STRING, product_id STRING, total_profit BIGINT)
+row format delimited
+fields terminated by ",";
+
+(ii)insert overwrite table table_K
+select age_group, product_id, sum(total_sales - total_cost) as total from retail_records_new where (total_sales - total_cost) > 0 and trim(age_group) = "K" group by age_group, product_id order by total desc limit 5;
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+UNION of all age groups:
+=========================
+
+(i) SELECT * FROM (SELECT * FROM table_a UNION SELECT * FROM table_b UNION SELECT * FROM table_c UNION SELECT * FROM table_d UNION SELECT * FROM table_e UNION SELECT * FROM table_f UNION SELECT * FROM table_g UNION SELECT * FROM table_h UNION SELECT * FROM table_i UNION SELECT * FROM table_j UNION SELECT * FROM table_k) union_table;
+
+(ii) SELECT * FROM (SELECT * FROM table_a UNION SELECT * FROM table_b UNION SELECT * FROM table_c UNION SELECT * FROM table_d UNION SELECT * FROM table_e UNION SELECT * FROM table_f UNION SELECT * FROM table_g UNION SELECT * FROM table_h UNION SELECT * FROM table_i UNION SELECT * FROM table_j UNION SELECT * FROM table_k) union_table ORDER BY union_table.total_profit DESC, union_table.age_group;
+
+(iii) SELECT * FROM (SELECT * FROM table_a UNION SELECT * FROM table_b UNION SELECT * FROM table_c UNION SELECT * FROM table_d UNION SELECT * FROM table_e UNION SELECT * FROM table_f UNION SELECT * FROM table_g UNION SELECT * FROM table_h UNION SELECT * FROM table_i UNION SELECT * FROM table_j UNION SELECT * FROM table_k) union_table ORDER BY union_table.total_profit DESC, union_table.age_group ASC;
+
+(iv) SELECT * FROM (SELECT * FROM table_a UNION SELECT * FROM table_b UNION SELECT * FROM table_c UNION SELECT * FROM table_d UNION SELECT * FROM table_e UNION SELECT * FROM table_f UNION SELECT * FROM table_g UNION SELECT * FROM table_h UNION SELECT * FROM table_i UNION SELECT * FROM table_j UNION SELECT * FROM table_k) union_table ORDER BY union_table.age_group ASC, union_table.total_profit DESC;
+
+
+(v)insert overwrite local directory 'top_5_profit_products_all'
+row format delimited
+fields terminated by '\t'
+SELECT * FROM (SELECT * FROM table_a UNION SELECT * FROM table_b UNION SELECT * FROM table_c UNION SELECT * FROM table_d UNION SELECT * FROM table_e UNION SELECT * FROM table_f UNION SELECT * FROM table_g UNION SELECT * FROM table_h UNION SELECT * FROM table_i UNION SELECT * FROM table_j UNION SELECT * FROM table_k) union_table ORDER BY union_table.age_group ASC, union_table.total_profit DESC;
+
+----------------------------------------------------------
+

@@ -1,0 +1,124 @@
+CLEANING OF RAW DATA 
+=====================
+
+Q. How will you clean data from a table which has:
+	1. bugs
+	2. incomplete data ?
+
+------------------------------------------------------
+
+TRANSACTION DATA
+================
+
+Query 1:
+--------- 
+Find the total amount collected in cash separately and credit separately. 
+Find the percentages of each as well.
+
+Solution:
+---------
+
+(i)
+CREATE TABLE totalsales (total BIGINT)
+ROW FORMAT DELIMITED 
+FIELDS TERMINATED BY ',';
+
+(ii)
+INSERT OVERWRITE TABLE totalsales
+SELECT SUM(amount) FROM totalsales;
+
+(iii) This is your totalsales (cash and credit mode included)
+SELECT * FROM totalsales;
+
+(iv)
+SELECT a.spendby, ROUND(SUM(a.amount), 2) as typesales, ROUND( (SUM(a.amount) / b.total * 100), 2) AS salespercent FROM txnrecs a, totalsales b GROUP BY a.spendby, b.total;
+
+-------------------------------------------------------
+
+Query 2:
+--------
+Find the turnover percentage (amount spent) of 3 different age groups.
+			OR
+Find sales based on age group with the % on totalsales.
+
+Solution:
+---------
+
+(i)
+CREATE TABLE salestable (custno INT, firstname STRING, age INT, profession STRING, amount DOUBLE, product STRING)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ',';
+
+(ii)
+INSERT OVERWRITE TABLE salestable 
+SELECT a.custno, a.firstname, a.age, a.profession, b.amount, b.product FROM customer a JOIN txnrecords b ON a.custno = b.custno;
+
+(iii)
+SELECT * FROM salestable;
+
+(iv)
+CREATE TABLE age_wise_recs (custno INT, firstname STRING, age INT, profession STRING, amount DOUBLE, product STRING, level STRING)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ',';
+
+(v) Here we are using the 'CASE' clause to segregate our data bases on age groups.
+
+INSERT OVERWRITE TABLE age_wise_recs
+SELECT *, CASE WHEN age < 30 THEN 'low' WHEN age >= 30 AND age < 50 THEN 'middle' WHEN age >= 50 THEN 'old' ELSE 'others' END
+FROM salestable;
+
+
+/*/ You need to design the conditions in such a way that they are satisfied at the CASE statement itself (and doesn't reach the ELSE part of it).
+
+
+(vi)
+DESCRIBE age_wise_recs;
+
+(vii)
+SELECT * FROM age_wise_recs LIMIT 10;
+
+(viii)
+CREATE TABLE age_wise_sales(level STRING, amount DOUBLE, salespercent DOUBLE)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ',';
+
+(ix)
+INSERT OVERWRITE TABLE age_wise_sales
+SELECT a.level, ROUND(SUM(a.amount), 2) AS totalspent, ROUND( SUM(a.amount)/b.total * 100, 2) AS salespercent FROM age_wise_recs a, totalsales b
+GROUP BY a.level, b.total DESC;
+
+(x)
+SELECT * FROM age_wise_sales;
+
+-------------------------------------------------------
+
+Query 3:
+--------
+Find the total sales amount and the corresponding percentage for EACH profession.
+
+
+Solution:
+---------
+
+(i)
+CREATE TABLE prof_wise_sales(profession STRING, amount DOUBLE, salespercent DOUBLE)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ',';
+
+(ii)
+INSERT OVERWRITE TABLE prof_wise_sales
+SELECT a.profession, ROUND(SUM(a.amount), 2) AS totalspent, ROUND( SUM(a.amount)/b.total * 100, 2) AS salespercent FROM salestable a, totalsales b
+GROUP BY a.profession, b.total DESC;
+
+(iii)
+SELECT * FROM prof_wise_sales;
+
+-------------------------------------------------------
+
+/*/ You can create a bar graph for the above queries and can further analyze it.
+
+/*/ The above queries show the importance of INSERT OVERWRITE clause.
+
+
+
+

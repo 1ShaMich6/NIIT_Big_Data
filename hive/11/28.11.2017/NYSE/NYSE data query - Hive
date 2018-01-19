@@ -1,0 +1,44 @@
+NYSE DATASET
+=============
+
+create table nyserecords(exchange_name STRING, stock_id STRING, stock_date DATE, open DOUBLE, high DOUBLE, low DOUBLE, close DOUBLE, volume BIGINT, adj_close DOUBLE)
+row format delimited
+fields terminated by ','
+stored as textfile;
+
+
+LOAD DATA LOCAL INPATH '/home/hduser/NYSE.csv' OVERWRITE INTO TABLE nyserecords;
+
+Q1. Count the number of records present in the dataset.
+A:
+   SELECT count(*) FROM nyserecords;
+
+
+Q2. Find the total stock volume for each stock.
+A:
+   SELECT stock_id, sum(volume) AS total_volume FROM nyserecords GROUP BY stock_id ORDER BY total_volume DESC;
+
+
+Q3. Find the top 5 stocks with maximum variance.
+A:
+(i) Display on CLI:
+====================
+SELECT stock_id, max((high - low)/low * 100) AS maxvar FROM nyserecords GROUP BY stock_id ORDER BY maxvar DESC LIMIT 5;
+
+(ii) Store the result in HDFS:
+==============================
+INSERT OVERWRITE DIRECTORY '/hive_practical/top5variance' ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+SELECT stock_id, max((high - low)/low * 100) AS maxvar FROM nyserecords GROUP BY stock_id ORDER BY maxvar DESC LIMIT 5;
+
+(iii) Store the result in Local Disk:
+====================================
+INSERT OVERWRITE LOCAL DIRECTORY '/home/hduser/top5variance' ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+SELECT stock_id, max((high - low)/low * 100) AS maxvar FROM nyserecords GROUP BY stock_id ORDER BY maxvar DESC LIMIT 5; 
+
+
+
+quit; ---> To exit Hive
+
+
+***NOTE: To clear the terminal ---- use Ctrl + L
+Its a universal command ... clears the screen.

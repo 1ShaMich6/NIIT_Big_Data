@@ -1,0 +1,100 @@
+CUSTOMER - TRANSATION DATASET
+=============================
+
+Setting up local variables and parameters in Hive - 2 ways:
+	1. Hive 
+	2. Command prompt
+
+------------------------------------------------------
+
+(I) HIVE SHELL
+===============
+hive> SET myage=25;
+hive> SELECT * FROM customer WHERE age >= ${hiveconf:myage};
+
+(II) COMMAND PROMPT
+===================
+
+hive -hiveconf myage=25 -f professioncount.sql;
+
+
+/*/ Whenever you are passing a Hive variable --- you need to use 'hiveconf'.
+
+/*/ VERY IMPORTANT -- Make sure that there is no space between variable name, "=" and its value.
+	---> else it will lead to ParseException.
+
+-------------------------------------------------------
+
+Create a batch file 'professioncount.sql'
+
+(i) gedit professioncount.sql
+
+(ii) Add the following contents in 'professioncount.sql'
+
+
+USE retail;
+
+SET myage = 45;
+
+--SELECT profession, COUNT(*) FROM customer WHERE age >= ${hiveconf:myage} GROUP BY profession ORDER BY profession;
+
+==================================================
+/*/ Time taken: 52.673 seconds, Fetched: 51 row(s)
+==================================================
+
+--SELECT profession, COUNT(*) FROM customer WHERE age >= 45 GROUP BY profession ORDER BY profession;
+
+==================================================
+/*/ Time taken: 51.926 seconds, Fetched: 51 row(s)
+==================================================
+
+SELECT * FROM customer WHERE age >= ${hiveconf:myage};
+
+--------------------------------------------------------
+
+Q. How to run a batch file without being in the Hive shell?
+
+Solution:
+=========
+
+COMMAND:    hive -f professioncount.sql
+
+/*/ Actually, you are running a script from your Linux Terminal
+/*/ This is the ULTIMATE or ADVANCED way of running queries
+/*/ Writing single queries on Hive terminal is just at the Training stage
+
+/*/ Recommended to use '.sql' while naming Batch files ---- makes it easier to remember
+
+------------------------------------------------------
+
+Now if you want to give the variable 'myage' as a parameter throught command prompt
+
+
+Batch file: professioncount.sql
+================================
+
+USE retail;
+
+--SET myage = 45;
+
+--SELECT profession, COUNT(*) FROM customer WHERE age >= ${hiveconf:myage} GROUP BY profession ORDER BY profession;
+
+--SELECT profession, COUNT(*) FROM customer WHERE age >= 45 GROUP BY profession ORDER BY profession;
+
+SELECT * FROM customer WHERE age >= ${hiveconf:myage};
+
+
+TERMINAL :
+===========
+
+hive -hiveconf myage=25 -f professioncount.sql
+
+------------------------------------------------------
+
+/*/ ADVANTAGES OF BATCH FILES:
+===============================
+
+	1. to combine mapreduce with hive
+	2. to automate your process completely
+
+------------------------------------------------------

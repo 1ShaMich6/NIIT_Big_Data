@@ -1,0 +1,72 @@
+Customer and Transaction Data:
+==============================
+
+1. To create an index on customer table on the 'profession' column.
+
+Commands:
+=========
+
+(i)
+/*/ Deferred rebuild will create an empty index
+
+CREATE INDEX prof_index ON TABLE customer(profession) AS 'compact' WITH DEFERRED REBUILD;
+
+
+(ii)
+/*/ ALTER INDEX command will actually create the indices
+
+ALTER INDEX prof_index ON customer REBUILD;
+
+
+(iii)
+/*/ Lists all the indices on the table
+
+SHOW INDEXES ON customer;
+
+
+(iv)
+/*/ Schema of the Index Table
+
+DESCRIBE retail__customer_prof_index__;
+
+
+(v)
+SELECT * FROM retail__customer_prof_index__ WHERE profession = "Pilot";
+
+------------------------------------------------------
+
+Time taken using Index  -v/s-  Time taken without using Index
+====================================================================
+
+Without Index:
+--------------
+
+SELECT profession, COUNT(*) FROM customer GROUP BY profession;
+
+Output:
+-------
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With Index:
+-----------
+
+SELECT profession, SIZE('_offsets') from retail__customer_prof_index__;
+
+Output:
+-------
+
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+/*/ Index Table is a PHYSICAL table -- not a VIRTUAL one.
+
+/*/ It is like a view minus the virtuality feature
+i.e. a physical folder will be created in HDFS unlike the case of a VIEW.
+
+------------------------------------------------------
+
+
+

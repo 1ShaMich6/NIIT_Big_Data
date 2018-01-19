@@ -1,0 +1,56 @@
+Data File : 'file.txt'
+======================
+
+CREATE DATABASE unstructured_data;
+
+Use unstructured_data;
+
+--------------------------------------------------------
+
+(i) Execute the following commands:
+
+
+CREATE TABLE input (line STRING);
+
+--DESCRIBE input;
+
+--SELECT * FROM input;
+
+LOAD DATA LOCAL INPATH '/home/hduser/file.txt' OVERWRITE INTO TABLE input;
+
+--SELECT SPLIT(line, ' ') AS word FROM input;
+
+--SELECT EXPLODE(SPLIT(line, ' ')) AS word FROM input;
+
+SELECT word, COUNT(*) AS count FROM (SELECT EXPLODE(SPLIT(line, ' ')) AS word FROM input) a
+GROUP BY word;
+
+
+SELECT word, COUNT(*) AS count FROM (SELECT EXPLODE(SPLIT(line, ' ')) AS word FROM input) a
+GROUP BY word
+ORDER BY count DESC;
+
+
+/*/ You must always provide an alias for a subquery.
+
+
+--INSERT OVERWRITE TABLE <table-name>
+--SELECT EXPLODE(SPLIT(line, ' ')) AS word FROM input;
+
+
+--SELECT word, COUNT(*) AS count FROM <table-name>
+--GROUP BY word;
+
+------------------------------------------------------
+
+/*/ EXPLODE() ---> Function which "explodes" an array and places each array element on a separate row.
+
+------------------------------------------------------
+
+/*/ SPLIT() ---> Function which breaks down a tuple into individual array elements.
+
+------------------------------------------------------
+
+/*/ EXPLODE() & SPLIT() make the process of grouping and counting in Hive much more simpler and efficient.
+
+------------------------------------------------------

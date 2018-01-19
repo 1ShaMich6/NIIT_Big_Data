@@ -1,0 +1,143 @@
+DATA TYPES:
+===========
+
+COMPLEX DATATYPES:
+==================
+
+(A) Array
+---------
+
+(i) Create a new database called 'complex_datatypes'
+
+CREATE DATABASE complex_datatypes;
+
+
+(ii)
+USE complex_datatypes;
+
+
+(iii) Create a table with one column of the ARRAY type
+
+CREATE TABLE arraytab(id INT, name STRING, salary BIGINT, sub ARRAY<STRING>, city STRING)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+COLLECTION ITEMS TERMINATED BY '$'
+
+DESCRIBE arraytab;
+
+/*/ Note: You will need to define the primitive datatype of the array collection type
+
+
+(iv) Load the data file 'arrayfile' from local disk
+
+LOAD DATA LOCAL INPATH '/home/hduser/arrayfile' OVERWRITE INTO TABLE arraytab;
+
+
+(v)
+SELECT * FROM arraytab;
+
+
+(vi)
+SELECT * FROM arraytab WHERE id = 1;
+
+
+(vii)
+SELECT id, name, sal, sub[2] FROM arraytab;
+
+
+(viii) To search for a particular array element
+
+SELECT * FROM arraytab WHERE ARRAY_CONTAINS(sub, 'c');
+
+
+(ix)
+SELECT id, name, sal, sub[0] FROM arraytab;
+
+
+(x) To search for 2 array elements
+
+SELECT * FROM arraytab WHERE ARRAY_CONTAINS(sub, 'c') OR ARRAY_CONTAINS(sub, 'f');
+
+------------------------------------------------------
+
+(B) Map
+--------
+
+(i) Create a table 'maptab' with one column containing Array elements and another column containg key-value pairs
+
+CREATE TABLE maptab(id INT, name STRING, sal BIGINT, sub ARRAY<STRING>, dud MAP<STRING,INT>, city STRING)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+COLLECTION ITEMS TERMINATED BY '$'
+MAP KEYS TERMINATED BY '#';
+
+
+(ii) Check the structure format of 'maptab' table
+
+DESCRIBE maptab;
+
+
+(iii) Display all the contents of 'maptab'
+
+SELECT * FROM maptab;
+
+
+(iv) To access a particular value in the map datatype
+
+SELECT * FROM maptab WHERE dud["bonus"]>0;
+
+
+(v) 
+SELECT dud["pf"] FROM maptab;
+
+
+(vi)
+SELECT dud["pf"], dud["epf"] FROM maptab;
+
+
+(vii)
+SELECT * FROM maptab WHERE dud["insurance"] IS NOT NULL;
+
+
+(viii)
+SELECT SUM(dud["bonus"]) FROM maptab WHERE dud["bonus"] IS NOT NULL;
+
+-------------------------------------------------------
+
+(C) Structure
+---------------
+
+(i) Create a table 'structtab' where 1 column is of Array type, another is of Map type and another one is of Struct type
+
+CREATE TABLE structtab(id INT, name STRING, sal BIGINT, sub ARRAY<STRING>, dud MAP<STRING,INT>, addr STRUCT<city:STRING, state:STRING, pin:BIGINT>)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+COLLECTION ITEMS TERMINATED BY '$'
+MAP KEYS TERMINATED BY '#';
+
+
+(ii)
+DESC structtab;
+
+
+(iii) Load the data into the table from 'structfile' located on the local disc
+
+LOAD DATA LOCAL INPATH '/home/hduser/structfile' INTO TABLE structtab;
+
+
+(iv)
+SELECT * FROM structtab;
+
+
+(v)
+SELECT addr.city, addr.state, addr.pin FROM structtab;
+
+
+(vi)
+SELECT * FROM structtab WHERE addr.pin=222;
+
+
+-------------------------------------------------------
+
+
+
+
+ 
+

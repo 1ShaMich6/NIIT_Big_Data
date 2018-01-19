@@ -1,0 +1,130 @@
+Transaction Data:
+=================
+
+1. Create a partitioned table by keeping the column "Category" as the partition column
+
+CREATE TABLE txn_recs_by_cat1 (txnno INT, txndate STRING, custno STRING, amount DOUBLE, product STRING, city STRING, state STRING, spendby STRING)
+PARTITIONED BY (category STRING)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+STORED AS textfile;
+
+------------------------------------------------------
+
+2. Set the following Hive properties:
+
+(i) SET hive.exec.dynamic.partition.mode=nonstrict;
+
+(ii) SET hive.exec.dynamic.partition=true;
+
+------------------------------------------------------
+
+3. Load "txn_recs_by_cat1" table with the data in "txnrecords" table
+
+FROM txnrecords t
+INSERT OVERWRITE TABLE txn_recs_by_cat1 PARTITION(category)
+SELECT t.txnno, t.txndate, t.custno, t.amount, t.product, t.city, t.state, t.spendby, t.category
+DISTRIBUTE BY category;
+
+------------------------------------------------------
+
+4. To display the transaction records with category = "Air Sports"
+
+SELECT * FROM txn_recs_by_cat1 WHERE category = "Air Sports" LIMIT 5;
+
+------------------------------------------------------
+
+5. 
+/*/ Note that your partition column will not be visible in your resultant data set.
+
+/*/ It will only be visible (as the last column) when you use a SELECT query.
+
+------------------------------------------------------
+
+6. To check the structure of a Partition table
+
+DESCRIBE txn_recs_by_cat1;
+
+------------------------------------------------------
+
+7. To display the total amount of all transactions where category = "Air Sports"
+
+COMPARISION BTW PARTITIONED TABLE AND NON-PARTITIONED TABLE
+
+Non-Partitioned Table:
+======================
+
+SELECT SUM(amount) FROM txnrecords WHERE category = "Air Sports";
+
+O/P:
+----- 
+HDFS Read = 4426661  bytes
+99316.89999999994
+
+Partitioned Table:
+==================
+
+SELECT SUM(amount) FROM txn_recs_by_cat1 WHERE category = "Air Sports";
+
+O/P:
+-----
+HDFS Read = 73769 bytes
+99316.90000000005
+
+------------------------------------------------------
+
+8. Creating partitions on columns that are not present i.e. Derived Columns
+
+(i) 
+CREATE TABLE txn_recs_by_cat2 (txnno INT, txndate STRING, custno STRING, amount DOUBLE, category STRING, product STRING, city STRING, state STRING, spendby STRING)
+PARTITIONED BY (month STRING)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+STORED AS textfile;
+
+(ii)
+FROM txnrecords t INSERT OVERWRITE TABLE txn_recs_by_cat2 PARTITION(month)
+SELECT t.txnno, t.txndate, t.custno, t.amount, t.category, t.product, t.city, t.state, t.spendby, SUBSTRING(t.txndate, 1, 2) AS month
+DISTRIBUTE BY month;
+
+------------------------------------------------------
+
+9. Composite Grouping
+Loading data into partition table 'txn_recs_by_cat3' using 2 columns as partition -- category and spendby
+
+(i)
+CREATE TABLE txn_recs_by_cat3(txnno INT, txndate STRING, custno INT, amount DOUBLE, product STRING, city STRING, state STRING)
+PARTITIONED BY (category STRING, spendby STRING)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+STORED AS textfile;
+
+(ii)
+FROM txnrecords t INSERT OVERWRITE TABLE txn_recs_by_cat3 PARTITION(category, spendby)
+SELECT t.txnno, t.txndate, t.custno, t.amount, t.product, t.city, t.state, t.category, t.spendby
+DISTRIBUTE BY category, spendby; 
+
+------------------------------------------------------
+
+10. Static Partitioning
+=======================
+
+Create a static partition for Category = "Gymnastics"
+
+(i)
+CREATE TABLE txn_recs_by_cat4(txnno INT, txndate STRING, custno INT, amount DOUBLE, product STRING, city STRING, state STRING, spendby STRING)
+PARTITIONED BY (category STRING)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+STORED AS textfile;
+
+
+(ii)
+FROM txnrecords t INSERT OVERWRITE TABLE txn_recs_by_cat4 PARTITION(category)
+SELECT t.txnno, t.txndate, t.custno, t.amount, t.product, t.city, t.state, t.spendby, t.category
+WHERE t.category = 'Gymnastics';
+
+(iii)
+SELECT * FROM txn_recs_by_cat4;
+
+/*/ Check HDFS for detailed difference between a Static Partitioning and a Dynamic Partitioning
+
+------------------------------------------------------
+
+

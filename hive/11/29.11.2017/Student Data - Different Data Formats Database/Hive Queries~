@@ -1,0 +1,60 @@
+STUDENT DATA:
+=============
+
+(A) TEXT FORMAT
+===============
+
+1. Create a Hive table "csv_table" which stored text data files
+
+CREATE TABLE csv_table(
+student_name STRING,
+subject STRING,
+marks INT)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+STORED AS TEXTFILE;
+
+
+2. Load csv_table with students.csv data
+
+LOAD DATA LOCAL INPATH '/home/hduser/students.csv' OVERWRITE INTO TABLE csv_table;
+
+-------------------------------------------------------
+
+(B) AVRO FORMAT
+===============
+
+3. Create another Hive table "avro_table" which will use AVRO files
+
+CREATE TABLE avro_table
+ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.avro.AvroSerDe'
+STORED AS INPUTFORMAT 'org.apache.hadoop.hive.ql.io.avro.AvroContainerInputFormat'
+OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.avro.AvroContainerOutputFormat'
+TBLPROPERTIES(
+'avro.schema.literal'='{"namespace": "student", "name": "student_marks", "type": "record",
+"fields":[{"name":"student_name", "type":"string"}, {"name":"subject", "type":"string"},{"name":"marks", "type":"int"} ]
+}');
+
+
+4. Load "avro_table" with data from "csv_table"
+
+INSERT OVERWRITE TABLE avro_table SELECT * FROM csv_table;
+
+
+/*/ Avro data: SCHEMA ---> JSON format
+	       DATA   ---> Binary format
+
+/*/ But when you view avro_table in Hive --- you are able to view the data in normal Text format
+	----> This is possible only cause Hive uses special libraries called SERDE libraries
+
+-------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+

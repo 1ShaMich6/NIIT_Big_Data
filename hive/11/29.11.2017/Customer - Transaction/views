@@ -1,0 +1,42 @@
+CUSTOMER-TRANSACTION DATA - VIEWS
+=================================
+
+1. Create a view in Hive to find the Top 10 customers with max amount spent
+
+CREATE VIEW topten AS
+SELECT a.custno, b.firstname, b.lastname, b.age, b.profession, ROUND(SUM(a.amount), 3) AS amount 
+FROM txnrecords a, customer b 
+WHERE a.custno = b.custno
+GROUP BY a.custno, b.firstname, b.lastname, b.age, b.profession
+ORDER BY amount DESC LIMIT 10;
+
+
+SELECT * FROM topten; 
+
+-----------------------------------------------------
+
+2. To delete a view, use the command DROP VIEW
+
+DROP VIEW topten;
+
+SHOW TABLES;
+
+-----------------------------------------------------
+
+3. Create a view in Hive for customers whose age is more than 45 years
+
+CREATE VIEW age45plus AS
+SELECT * FROM customer WHERE age > 45;
+
+------------------------------------------------------
+4. 
+/*/When you execute the command 
+	SHOW TABLES;
+you will be able to see your view table.
+
+/*/ However, if you check for the same in your browser, you will not find any folder named 'age45plus'.
+
+/*/ This is because your table type is "VIRTUAL_VIEW"
+and not "MANAGED_TABLE" or "EXTERNAL_TABLE"
+
+------------------------------------------------------

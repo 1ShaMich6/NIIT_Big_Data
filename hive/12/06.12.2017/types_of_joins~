@@ -1,0 +1,137 @@
+Employee - Email Data sets
+==========================
+
+1. Create a table 'employee'
+
+CREATE TABLE employee(name STRING, salary FLOAT, city STRING)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ',';
+
+
+2. Load 'employee' with data from file 'emp.txt'
+
+LOAD DATA LOCAL INPATH '/home/hduser/emp.txt' INTO TABLE employee;
+
+-------------------------------------------------------
+
+3. Create a table 'emailid'
+
+CREATE TABLE emailid(name STRING, email STRING)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ',';
+
+
+4. Load 'emailid' with the data from file 'email.txt'
+
+LOAD DATA LOCAL INPATH '/home/hduser/email.txt' INTO TABLE emailid;
+
+
+5. SELECT * FROM employee
+
+Output:
+========
+swetha	250000.0	Chennai
+anamika	200000.0	Kanyakumari
+tarun	300000.0	Pondi
+anita	250000.0	Selam
+
+
+6. SELECT * FROM emailid;
+
+Output:
+========
+swetha	swetha@gmail.com
+tarun	tarun@edureka.in
+nagesh	nagesh@yahoo.com
+venkatesh	venki@gmail.com
+
+-------------------------------------------------------
+
+TYPES OF JOINS:
+===============
+
+(A) INNER JOIN
+---------------
+SELECT a.name, a.city, a.salary, b.email
+FROM employee a JOIN emailid b ON a.name = b.name;
+
+/*/ Will display only the records matched in both the tables
+
+OUTPUT:
+=======
+swetha	Chennai	250000.0	swetha@gmail.com
+tarun	Pondi	300000.0	tarun@edureka.in
+
+------------------------------------------------------
+
+(B) LEFT OUTER JOIN
+--------------------
+SELECT a.name, a.city, a.salary, b.email
+FROM employee a LEFT OUTER JOIN emailid b ON a.name = b.name;
+
+/*/ Will extract ALL the records of the table on LHS and only the matched records of the table on RHS.
+
+OUTPUT:
+=======
+swetha	Chennai	250000.0	swetha@gmail.com
+anamika	Kanyakumari	200000.0	NULL
+tarun	Pondi	300000.0	tarun@edureka.in
+anita	Selam	250000.0	NULL
+
+------------------------------------------------------
+
+(C) RIGHT OUTER JOIN
+---------------------
+SELECT a.name, a.city, a.salary, b.email
+FROM employee a RIGHT OUTER JOIN emailid b ON a.name = b.name;
+
+/*/ Will extract ALL the records of the table on RHS and only the matched records of the table on LHS.
+
+OUTPUT:
+=======
+swetha	Chennai	250000.0	swetha@gmail.com
+tarun	Pondi	300000.0	tarun@edureka.in
+NULL	NULL	NULL	nagesh@yahoo.com
+NULL	NULL	NULL	venki@gmail.com
+
+------------------------------------------------------
+
+(D) FULL OUTER JOIN
+--------------------
+SELECT a.name, a.city, a.salary, b.email
+FROM employee a FULL OUTER JOIN emailid b ON a.name = b.name;
+
+/*/ Will extract ALL the records from both the tables
+
+/*/ Those tuples of one table which haven't found a matching tuple in the other table ... will contain NULL as value (wherever the values are missing).
+
+OUTPUT:
+=======
+anamika	Kanyakumari	200000.0	NULL
+anita	Selam	250000.0	NULL
+NULL	NULL	NULL	nagesh@yahoo.com
+swetha	Chennai	250000.0	swetha@gmail.com
+tarun	Pondi	300000.0	tarun@edureka.in
+NULL	NULL	NULL	venki@gmail.com
+
+-------------------------------------------------------
+
+/*/ Joins are useful in finding tuples that are missing a few values.
+
+CUSTOMER - TRANSACTION DATA
+============================
+
+Try the following query:
+
+SELECT * FROM txnrecords a LEFT OUTER JOIN customer b ON a.custno = b.custno WHERE b.firstname IS NULL;
+
+OUTPUT:
+=======
+5483	07-17-2011	4000000	103.79	Indoor Games	Bowling	Flint	Michigan	credit	NULL	NULL	NULL	NULL	NULL
+19041	08-01-2011	4000000	175.28	Games	Portable Electronic Games	Irvine	California	credit	NULL	NULL	NULL	NULL	NULL
+19757	10-30-2011	4000000	19.96	Outdoor Recreation	RunningSt. Petersburg	Florida	cash	NULL	NULL	NULL	NULL	NULL
+44544	06-08-2011	4000000	150.06	Outdoor Recreation	Riding Scooters	Newark	New Jersey	credit	NULL	NULL	NULL	NULL	NULL
+49461	07-12-2011	4000000	188.13	Winter Sports	Cross-Country Skiing	El Paso	Texas	credit	NULL	NULL	NULL	NULL	NULL
+
+
+-------------------------------------------------------
